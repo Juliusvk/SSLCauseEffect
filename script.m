@@ -1,5 +1,7 @@
 %% This script performs SSL with cause (C) and effect (E) features
 
+%test comment
+
 function [C,Y,E] = getData()
 %This function generates training data
 
