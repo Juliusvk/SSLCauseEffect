@@ -1,5 +1,11 @@
 %% This script performs SSL with cause (C) and effect (E) features
 
+function [C,Y,E] = getData()
+%This function generates training data
+
+end
+
+
 function p = YgivenC(C,Y,theta)
 %This function computes p(Y=1|C,theta)
 
