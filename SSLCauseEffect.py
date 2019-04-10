@@ -3,13 +3,13 @@ This script contains code to run experiments for semi-supervised learning (SSL) 
 """
 import numpy as np
 
+
 def sigmoid(x):
     """
     computes the logistic sigmoid function of evaluated at input
     :param x: (dx1) np.array of reals
     :return: (dx1) np.array of probabilities
     """
-    pass
+    return 1/(1 + np.exp(-x))
 
 
-a = np.array([1.4, 3.17, -0.45])
