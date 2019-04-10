@@ -13,3 +13,5 @@ def sigmoid(x):
     return 1/(1 + np.exp(-x))
 
 
+a = np.array([2.3, 0, -4])
+print(sigmoid(a))
