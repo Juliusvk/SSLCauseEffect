@@ -2,7 +2,7 @@
 This script contains code to run experiments for semi-supervised learning (SSL) with cause and effect features.
 """
 
-
+from scipy.stats import multivariate_normal
 import numpy as np
 
 
@@ -81,22 +81,29 @@ def get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e, b_0, b_1, cov_e, 
     return x_c, y, x_e
 
 
-m = 3
-d_c = 1
-d_e = 1
-n_samples = 10
-weights_c = np.array([.3, .2, .5])
-means_c = np.zeros((m, d_c))
-covs_c = np.zeros((m, d_c, d_c))
-for i in range(m):
-    covs_c[i] = np.eye(d_c)
-a_y = np.ones((d_c, 1))
-b_y = np.ones((1, 1))
-a_e = np.ones((d_c, d_e))
-b_0 = -2 * np.ones((1, d_e))
-b_1 = 2 * np.ones((1, d_e))
-cov_e = np.eye(d_e)
-x_c, y, x_e = get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e, b_0, b_1, cov_e, n_samples)
-print(x_c.shape)
-print(y.shape)
-print(x_e.shape)
+def predict_class_probs(x_c, x_e, a_y, b_y, a_e, b_0, b_1, cov_e):
+    """
+    Assigns examples of the form (x_c, x_e) to the more likely class given the (estimated) parameters.
+    :param x_c: (n x d_c) array of causal features
+    :param x_e: (n x d_e) array of effect features
+    :param a_y: (d_c x 1) np.array of weights for logistic regression of Y on X_C
+    :param b_y: (1 x 1) bias term for logistic regression of Y on X_C
+    :param a_e: (d_c x d_e) np.array of weights for map X_C -> X_E
+    :param b_0: (1 x d_e) np.array bias for class Y=0
+    :param b_1: (1 x d_e) np.array bias for class Y=1
+    :param cov_e: (d_e x d_e) np.array covariance for noise  N_E
+    :return: (n x 1) array of class probabilities representing P(Y=1 | X_C, X_E)
+    """
+
+    py1 = sigmoid(fy_linear(x_c, a_y, b_y))  # P(Y=1 |X_C)
+
+    mean1 = np.matmul(x_c, a_e) + b_1
+    pe1 = np.zeros(py1.shape)
+    for i in range(py1.shape[0]):
+        pe1[i] = multivariate_normal.pdf(x_e[i], mean1[i], cov_e)  # P(X_E| X_C, Y=1)
+
+    mean0 = np.matmul(x_c, a_e) + b_0
+    pe0 = np.zeros(py1.shape)
+    for i in range(py1.shape[0]):
+        pe0[i] = multivariate_normal.pdf(x_e[i], mean0[i], cov_e)  # P(X_E| X_C, Y=0)
+
