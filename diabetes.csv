@@ -1,0 +1,3 @@
+,Constant,Pregnancies,Glucose,BloodPressure,SkinThickness,Insulin,BMI,DiabetesPedigreeFunction,Age
+p-values,9.16E-32,0.000122964,2.51E-21,0.01107207,0.928515208,0.186065157,2.76E-09,0.001579978,0.111191951
+cause/effect,,Cause,Effect,effect?,Cause/cyclic,Effect,cause/cyclic,Cause,Cause
