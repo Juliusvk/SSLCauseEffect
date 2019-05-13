@@ -1,6 +1,15 @@
+close all; clear all; clc;
 % load and preprocess data
 T = readtable('diabetes.csv'); A = table2array(T);
 X = A(:,1:8); Y = A(:,9)+1;
+
+%impute missing glucose and BMI values by class mean instead of 0
+X(X(:,2)==0,2) = (Y(X(:,2)==0)-1) * mean(X(and(Y==2,X(:,2)~=0), 2)) + ...
+    (2-Y(X(:,2)==0)) * mean(X(and(Y==1, X(:,2)~=0), 2));
+X(X(:,6)==0,6) = (Y(X(:,6)==0)-1) * mean(X(and(Y==2,X(:,6)~=0), 6)) + ...
+    (2-Y(X(:,6)==0)) * mean(X(and(Y==1, X(:,6)~=0), 6));
+
+X = (X - mean(X))./std(X);
 
 % analyse dataset
 [B_full,~,~] = mnrfit(X, Y);
