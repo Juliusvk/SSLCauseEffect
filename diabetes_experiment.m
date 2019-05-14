@@ -23,7 +23,8 @@ end
 X = (X - mean(X))./std(X);
 
 %% Perform Experiment
-n_train = 512; n_test = 256; n_iter = 3; n_labelled_range = 2.^(3:8);
+n_iter = 100; n_train = 512; n_test = 256;
+n_labelled = 2^5; n_unlabelled_range = 2.^(0:8);
 lam_ridge = 1; threshold = 10; lam_semigen = 0.1;
 options = optimset('MaxFunEvals',1e5, 'MaxIter', 1e5);
 
@@ -32,12 +33,12 @@ tic
 %% separate into train and test data
 [X_tr, Y_tr, X_te, Y_te] = train_test_split(X, Y, n_train, n_test);
 
-for i = 1:length(n_labelled_range)
+for i = 1:length(n_unlabelled_range)
     
     %% split into labelled and unlabelled
-    n_labelled = n_labelled_range(i);
+    n_unlabelled = n_unlabelled_range(i);
     [X_lab, Y_lab, X_unl, ~] = train_test_split(X_tr, Y_tr,...
-        n_labelled, n_train - n_labelled);
+        n_labelled, n_unlabelled);
     switch dataset
         case 'diabetes'     
             X_lab_cau = X_lab(:, 1:end-1); X_lab_eff = X_lab(:, end);
@@ -58,19 +59,20 @@ for i = 1:length(n_labelled_range)
 %     theta = fminsearch(fun,th_0, options);
     
     %% Conditional label propagation
-   [X_lab_cau, X_lab_eff,Y_lab, X_unl_cau, X_unl_eff] = lin_fun_label_prop(...
+    [X_lab_cau, X_lab_eff,Y_lab, X_unl_cau, X_unl_eff] = lin_fun_label_prop(...
         X_lab_cau, X_lab_eff, Y_lab, X_unl_cau, X_unl_eff, lam_ridge, threshold);
-   [B_clp,~,~] = mnrfit([X_lab_cau,X_lab_eff], Y_lab);
-   [res.AUC_clp(i, iter), ~, ~] = evaluate(B_clp, X_te, Y_te);
+    [B_clp,~,~] = mnrfit([X_lab_cau,X_lab_eff], Y_lab);
+    [res.AUC_clp(i, iter), ~, ~] = evaluate(B_clp, X_te, Y_te);
 end
 toc
 end
 
 %%
-AUCs = figure(2); hold on; xlabel('log_2(labelled examples)'); ylabel('AUC');
-errorbar(log2(n_labelled_range), mean(res.AUC_base,2), std(res.AUC_base'), 'LineWidth', 2);
-errorbar(log2(n_labelled_range), mean(res.AUC_clp,2), std(res.AUC_clp'), 'LineWidth', 2);
-legend('baseline sup. LR', 'lin. func. label prop + LR')
+AUCs = figure(2); hold on; xlabel('log_2(unlabelled examples)'); ylabel('AUROC');
+errorbar(log2(n_unlabelled_range), mean(res.AUC_base,2), std(res.AUC_base'), 'LineWidth', 2);
+errorbar(log2(n_unlabelled_range), mean(res.AUC_clp,2), std(res.AUC_clp'), 'LineWidth', 2);
+legend('baseline sup. LR', 'lin. func. label prop + LR');
+title(sprintf('%i labelled examples', n_labelled))
 
 
 
