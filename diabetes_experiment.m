@@ -23,8 +23,8 @@ end
 X = (X - mean(X))./std(X);
 
 %% Perform Experiment
-n_iter = 100; n_train = 512; n_test = 256;
-n_labelled = 2^5; n_unlabelled_range = 2.^(0:8);
+n_iter = 50; n_train = 512; n_test = 256;
+n_labelled = 2^5; n_unlabelled_range = 2.^(5:8);
 lam_ridge = 1; threshold = 10; lam_semigen = 0.1;
 options = optimset('MaxFunEvals',1e5, 'MaxIter', 1e5);
 
@@ -37,7 +37,7 @@ for i = 1:length(n_unlabelled_range)
     
     %% split into labelled and unlabelled
     n_unlabelled = n_unlabelled_range(i);
-    [X_lab, Y_lab, X_unl, ~] = train_test_split(X_tr, Y_tr,...
+    [X_lab, Y_lab, X_unl, Y_unl] = train_test_split(X_tr, Y_tr,...
         n_labelled, n_unlabelled);
     switch dataset
         case 'diabetes'     
@@ -49,20 +49,27 @@ for i = 1:length(n_unlabelled_range)
     %% Baseline 1: logistic regression on labelled data only
     [B_base,~,~] = mnrfit(X_lab, Y_lab);
     [res.AUC_base(i, iter), ~, ~] = evaluate(B_base, X_te, Y_te);
+    [transd.AUC_base(i, iter), ~,~] =  evaluate(B_base, X_unl, Y_unl);
 
     %% Semi-Generative Model
-    fun = @(theta) nll_pooled(X_lab_cau,X_lab_eff,Y_lab,...
-        X_unl_cau,X_unl_eff,theta,lam_semigen);
-    [~,p_cau] = size(X_lab_cau);
-    th_0 = zeros(3*p_cau+5,1);
-%     th_0 = 0.1 * randn(3*p_cau+5,1);
-%     theta = fminsearch(fun,th_0, options);
+    %     fun = @(theta) nll_pooled(X_lab_cau,X_lab_eff,Y_lab,...
+    %         X_unl_cau,X_unl_eff,theta,lam_semigen);
+    %     [~,p_cau] = size(X_lab_cau);
+    %     th_0 = zeros(3*p_cau+5,1);
+    %     th_0 = 0.1 * randn(3*p_cau+5,1);
+    %     theta = fminsearch(fun,th_0, options);
     
     %% Conditional label propagation
+    Y_hard = hard_label_prop(X_lab_cau, X_lab_eff, Y_lab, X_unl_cau, X_unl_eff, lam_ridge);
+    [x_roc,y_roc,~,transd.AUC_hardlp(i,iter)] = perfcurve(Y_unl, Y_hard-1, 2);
+    
+    
     [X_lab_cau, X_lab_eff,Y_lab, X_unl_cau, X_unl_eff] = lin_fun_label_prop(...
         X_lab_cau, X_lab_eff, Y_lab, X_unl_cau, X_unl_eff, lam_ridge, threshold);
     [B_clp,~,~] = mnrfit([X_lab_cau,X_lab_eff], Y_lab);
-    [res.AUC_clp(i, iter), ~, ~] = evaluate(B_clp, X_te, Y_te);
+    [res.AUC_clp(i, iter), ~, ~] = evaluate(B_clp, X_unl, Y_unl);
+    
+    
 end
 toc
 end
