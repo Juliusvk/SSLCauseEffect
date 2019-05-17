@@ -1,16 +1,23 @@
 import SSLCauseEffect as ssl
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import multivariate_normal
+from sklearn.linear_model import LogisticRegression
+from scikitTSVM import SKTSVM
+import random as rnd
+import warnings
+warnings.simplefilter("ignore", category=DeprecationWarning)
 
+# import time
+# start = time.time()
+# end = time.time()
+# print(end - start)
 
 # Define parameters
-m = 3  # number of components in MoG
 d_c = 1  # input dimension
 d_e = 1  # output dimension
 
-weights_c = np.array([.3, .4, .3])  # mixture weights
-means_c = 2 * np.array([[-1], [0], [1]])  # mixture means
+weights_c = np.array([.5, .5])  # mixture weights
+means_c = 2 * np.array([[-1], [1]])  # mixture means
+m = weights_c.shape[0] # number of components in MoG
 covs_c = np.zeros((m, d_c, d_c))
 for i in range(m):
     covs_c[i] = 0.1 * np.eye(d_c)  # mixture (co)variances
@@ -18,32 +25,59 @@ for i in range(m):
 a_y = 1 * np.ones((d_c, 1))  # strength of influence of x_c
 b_y = np.zeros((1, 1))  # class boundary
 
-a_e = 0 * np.ones((d_c, d_e))  # dependence of x_e on x_c
+a_e0 = 1 * np.ones((d_c, d_e))  # dependence of x_e on x_c for class y=0
+a_e1 = 1 * np.ones((d_c, d_e)) # dependence of x_e on x_c for class y=0
 mu_y = 2  # dependence of x_e on y
 b_0 = -mu_y * np.ones((1, d_e))
 b_1 = mu_y * np.ones((1, d_e))
-cov_e = np.eye(d_e)  # noise variance for n_e
-
+cov_e0 = 0.5 * np.eye(d_e)  # noise variance for n_e
+cov_e1 = 0.5 * np.eye(d_e)  # noise variance for n_e
 
 # Generate Data
-n_labelled = 50
-n_unlabelled = 500
-x_c, y, x_e = ssl.get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e, b_0, b_1, cov_e, n_labelled)
-z_c, z_y, z_e = ssl.get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e, b_0, b_1, cov_e, n_unlabelled)
-
+n_labelled = 5
+n_unlabelled = 10
+x_c, y, x_e = ssl.get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1, n_labelled)
+z_c, z_y, z_e = ssl.get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1, n_unlabelled)
 
 # Plot Data
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.scatter(z_c, z_e, color='grey', marker='.')
-ax.scatter(x_c[y == 0], x_e[y == 0], color='blue', marker='.')
-ax.scatter(x_c[y == 1], x_e[y == 1], color='red', marker='.')
-ax.set(xlabel='Causal features $X_C$', ylabel='Effect features $X_E$')
-# ax.legend(loc='best')
-# plt.show()
+fig_data = ssl.plot_data(x_c, y, x_e, z_c, z_e)
 
-py1 = ssl.sigmoid(ssl.fy_linear(x_c, a_y, b_y))  # P(Y=1 |X_C)
-mean1 = np.matmul(x_c, a_e) + b_1
-pe1 = np.zeros(py1.shape)
-for i in range(py1.shape[0]):
-    pe1[i] = multivariate_normal.pdf(x_e[i], mean1[i], cov_e)  # P(X_E| X_C, Y=1)
+soft_label_true = ssl.predict_class_probs(z_c, z_e, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1)
+
+x = np.concatenate((x_c, x_e), axis=1)
+z = np.concatenate((z_c, z_e), axis=1)
+
+# Baseline: Linear Logistic Regression
+lin_lr = LogisticRegression(random_state=0).fit(x, y.ravel())
+hard_label_lin_lr = lin_lr.predict(z)
+soft_label_lin_lr = lin_lr.predict_proba(z)[:, 1]
+acc_lin_lr = lin_lr.score(z, z_y)
+
+
+# Baseline: Linear TSVM
+# https://github.com/tmadl/semisup-learn/tree/master/methods
+x_merged = np.concatenate((x, z))
+y_merged = np.concatenate((y, -1*np.ones((z.shape[0], 1)))).ravel().astype(int) #-1 for unlabelled data
+lin_tsvm = SKTSVM(kernel='linear')
+lin_tsvm.fit(x_merged, y_merged)
+hard_label_lin_tsvm = lin_tsvm.predict(z)
+soft_label_lin_tsvm = lin_tsvm.predict_proba(z)[:, 1]
+acc_lin_tsvm = lin_tsvm.score(z, z_y)
+print(hard_label_lin_tsvm, soft_label_lin_tsvm, acc_lin_tsvm)
+
+
+# Baseline: Non-Linear TSVM
+# https://github.com/tmadl/semisup-learn/tree/master/methods
+rbf_tsvm = SKTSVM(kernel='RBF')
+rbf_tsvm.fit(x_merged, y_merged)
+
+
+
+# Baseline: Non-Linear Logistic Regression
+
+
+# Baseline: Label Propagation RBF weights
+
+# Baseline: Label Propagation k-NN weights
+
+

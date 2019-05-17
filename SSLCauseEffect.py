@@ -4,6 +4,7 @@ This script contains code to run experiments for semi-supervised learning (SSL) 
 
 from scipy.stats import multivariate_normal
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def sigmoid(x):
@@ -18,7 +19,7 @@ def sigmoid(x):
 
 def fy_linear(x, a, b):
     """
-    computes the linear function x*W + b , e.g. the logit class probabilities (the input to the sigmoid) from causal features
+    computes the linear function x*W + b , e.g. the logit class probs (the input to the sigmoid) from causal features
     :param x: (n x d) np.array of reals - causal features X_C
     :param a: (d x p) weight matrix
     :param b: (1 x p) bias term
@@ -48,7 +49,7 @@ def sample_from_mog(weights, means, covs, n_samples):
     return samples
 
 
-def get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e, b_0, b_1, cov_e, n_samples):
+def get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1, n_samples):
     """
     Generates a synthetic data set of size n_samples according to the generative model:
 
@@ -61,10 +62,12 @@ def get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e, b_0, b_1, cov_e, 
     :param covs_c: (m x d_c x d_c) np.array of covariances
     :param a_y: (d_c x 1) np.array of weights for logistic regression of Y on X_C
     :param b_y: (1 x 1) bias term for logistic regression of Y on X_C
-    :param a_e: (d_c x d_e) np.array of weights for map X_C -> X_E
+    :param a_e0: (d_c x d_e) np.array of weights for map X_C, Y=0 -> X_E
+    :param a_e1: (d_c x d_e) np.array of weights for map X_C, Y=1 -> X_E
     :param b_0: (1 x d_e) np.array bias for class Y=0
     :param b_1: (1 x d_e) np.array bias for class Y=1
-    :param cov_e: (d_e x d_e) np.array covariance for noise  N_E
+    :param cov_e0: (d_e x d_e) np.array covariance for noise  N_E | Y=0
+    :param cov_e1: (d_e x d_e) np.array covariance for noise  N_E | Y=1
     :param n_samples:
     :return: x_c: (n_samples x d_c) np.array of causal features
              y: (n_samples x 1) np.array of class labels
@@ -75,35 +78,56 @@ def get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e, b_0, b_1, cov_e, 
     class_probs = sigmoid(fy_linear(x_c, a_y, b_y))  # P(Y=1 | X_C)
     n_y = np.random.uniform(0, 1, (n_samples, 1))
     y = np.ones((n_samples, 1)) * (class_probs > n_y)
-    d_e = cov_e[0].shape
-    n_e = np.random.multivariate_normal(np.zeros(d_e), cov_e, n_samples)
-    x_e = np.matmul(x_c, a_e) + np.matmul(y, b_1) + np.matmul((1-y), b_0) + n_e
+    d_e = cov_e0[0].shape
+    n_e0 = np.random.multivariate_normal(np.zeros(d_e), cov_e0, n_samples)
+    n_e1 = np.random.multivariate_normal(np.zeros(d_e), cov_e1, n_samples)
+    x_e0 = np.matmul(x_c, a_e0) + b_0 + n_e0
+    x_e1 = np.matmul(x_c, a_e1) + b_1 + n_e1
+    x_e = np.multiply(y == 0, x_e0) + np.multiply(y == 1, x_e1)
     return x_c, y, x_e
 
 
-def predict_class_probs(x_c, x_e, a_y, b_y, a_e, b_0, b_1, cov_e):
+def predict_class_probs(x_c, x_e, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1):
     """
     Assigns examples of the form (x_c, x_e) to the more likely class given the (estimated) parameters.
     :param x_c: (n x d_c) array of causal features
     :param x_e: (n x d_e) array of effect features
     :param a_y: (d_c x 1) np.array of weights for logistic regression of Y on X_C
     :param b_y: (1 x 1) bias term for logistic regression of Y on X_C
-    :param a_e: (d_c x d_e) np.array of weights for map X_C -> X_E
+    :param a_e0: (d_c x d_e) np.array of weights for map X_C, Y=0 -> X_E
+    :param a_e1: (d_c x d_e) np.array of weights for map X_C, Y=1 -> X_E
     :param b_0: (1 x d_e) np.array bias for class Y=0
     :param b_1: (1 x d_e) np.array bias for class Y=1
-    :param cov_e: (d_e x d_e) np.array covariance for noise  N_E
+    :param cov_e0: (d_e x d_e) np.array covariance for noise  N_E |Y=0
+    :param cov_e1: (d_e x d_e) np.array covariance for noise  N_E |Y=1
     :return: (n x 1) array of class probabilities representing P(Y=1 | X_C, X_E)
     """
 
     py1 = sigmoid(fy_linear(x_c, a_y, b_y))  # P(Y=1 |X_C)
 
-    mean1 = np.matmul(x_c, a_e) + b_1
-    pe1 = np.zeros(py1.shape)
-    for i in range(py1.shape[0]):
-        pe1[i] = multivariate_normal.pdf(x_e[i], mean1[i], cov_e)  # P(X_E| X_C, Y=1)
-
-    mean0 = np.matmul(x_c, a_e) + b_0
+    mean0 = np.matmul(x_c, a_e0) + b_0
     pe0 = np.zeros(py1.shape)
     for i in range(py1.shape[0]):
-        pe0[i] = multivariate_normal.pdf(x_e[i], mean0[i], cov_e)  # P(X_E| X_C, Y=0)
+        pe0[i] = multivariate_normal.pdf(x_e[i], mean0[i], cov_e0)  # P(X_E| X_C, Y=0)
+
+    mean1 = np.matmul(x_c, a_e1) + b_1
+    pe1 = np.zeros(py1.shape)
+    for i in range(py1.shape[0]):
+        pe1[i] = multivariate_normal.pdf(x_e[i], mean1[i], cov_e1)  # P(X_E| X_C, Y=1)
+
+    prelim = np.multiply(py1, pe1)
+    p1 = np.divide(prelim, prelim + np.multiply(1-py1, pe0))
+    return p1
+
+
+def plot_data(x_c, y, x_e, z_c, z_e):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.scatter(z_c, z_e, color='grey', marker='.')
+    ax.scatter(x_c[y == 0], x_e[y == 0], color='blue', marker='.')
+    ax.scatter(x_c[y == 1], x_e[y == 1], color='red', marker='.')
+    ax.set(xlabel='Causal features $X_C$', ylabel='Effect features $X_E$')
+    # ax.legend(loc='best')
+    # plt.show()
+    return fig
 
