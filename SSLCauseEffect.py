@@ -5,6 +5,29 @@ This script contains code to run experiments for semi-supervised learning (SSL) 
 from scipy.stats import multivariate_normal
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import Ridge
+
+
+def get_params(d_c, d_e):
+    weights_c = np.array([.5, .5])  # mixture weights
+    means_c = 1 * np.array([-1 * np.ones((d_c, 1)), np.ones((d_c, 1))])  # mixture means
+    m = weights_c.shape[0]  # number of components in MoG
+    covs_c = np.zeros((m, d_c, d_c))
+    for i in range(m):
+        covs_c[i] = 0.1 * np.eye(d_c)  # mixture (co)variances
+
+    a_y = 1 * np.ones((d_c, 1))  # strength of influence of x_c
+    b_y = 0 * np.ones(1)  # class boundary
+
+    a_e0 = 3 * np.ones((d_c, d_e))  # dependence of x_e on x_c for class y=0
+    a_e1 = -2 * np.ones((d_c, d_e))  # dependence of x_e on x_c for class y=0
+    mu_y = 0  # dependence of x_e on y
+    b_0 = -mu_y * np.ones((1, d_e))
+    b_1 = mu_y * np.ones((1, d_e))
+    cov_e0 = 1 * np.eye(d_e)  # noise variance for n_e
+    cov_e1 = 1 * np.eye(d_e)  # noise variance for n_e
+    return weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1
 
 
 def sigmoid(x):
@@ -41,11 +64,11 @@ def sample_from_mog(weights, means, covs, n_samples):
 
     d = means.shape[1]
     comps = np.random.multinomial(1, weights, n_samples)  # (n_samplesxm) mask of components
-    sample_means = np.matmul(comps, means)  # (n_samplesxd) matrix of sample means
+    sample_means = np.einsum('ij,jkl->ikl', comps, means)  # (n_samplesxd) matrix of sample means
     sample_covs = np.einsum('ij,jkl->ikl', comps, covs)  # (n_samplesxdxd) tensor of sample variances
     samples = np.zeros((n_samples, d))
     for i in range(n_samples):
-        samples[i] = np.random.multivariate_normal(sample_means[i], sample_covs[i])
+        samples[i] = np.random.multivariate_normal(sample_means[i].ravel(), sample_covs[i])
     return samples
 
 
@@ -131,3 +154,94 @@ def plot_data(x_c, y, x_e, z_c, z_e):
     # plt.show()
     return fig
 
+
+def get_log_reg_params(x, y, weight=None):
+    lr_c_only = LogisticRegression(random_state=0, solver='liblinear')
+    lr_c_only.fit(x, y.ravel(), sample_weight=weight)
+    return np.transpose(lr_c_only.coef_), lr_c_only.intercept_
+
+
+def get_weighted_lin_reg_params(x_c, x_e, w):
+    ridge = Ridge().fit(x_c, x_e, sample_weight=w)
+    a = np.transpose(ridge.coef_)
+    b = ridge.intercept_.reshape((1, x_e.shape[1]))
+    sq_res = np.square(x_e - ridge.predict(x_c))
+    sum_weighted_sq_res = np.sum(np.multiply(w.reshape((w.shape[0], 1)), sq_res), axis=0)
+    cov = np.diag(np.divide(sum_weighted_sq_res, np.sum(w)))
+    return a, b, cov
+
+
+def get_lin_reg_params(x_c, x_e):
+    ridge = Ridge().fit(x_c, x_e)
+    a = np.transpose(ridge.coef_)
+    b = ridge.intercept_.reshape((1, x_e.shape[1]))
+    sum_sq_res = np.sum(np.square(x_e - ridge.predict(x_c)), axis=0)
+    cov = np.diag(np.divide(sum_sq_res, x_c.shape[0]))
+    return a, b, cov
+
+
+def hard_label_EM(x_c, y, x_e, z_c, z_e):
+    c = np.concatenate((x_c, z_c))
+    e = np.concatenate((x_e, z_e))
+
+    # initialise from labelled data
+    a_y, b_y = get_log_reg_params(x_c, y)
+    idx_0 = np.where(y == 0)[0]
+    idx_1 = np.where(y == 1)[0]
+    a_e0, b_0, cov_e0 = get_lin_reg_params(x_c[idx_0], x_e[idx_0])
+    a_e1, b_1, cov_e1 = get_lin_reg_params(x_c[idx_1], x_e[idx_1])
+
+    converged = False
+    u_old = np.zeros((z_c.shape[0], 1))
+    while not converged:
+        # E-step: compute labels
+        p1 = predict_class_probs(z_c, z_e, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1)
+        u = p1 > 0.5
+
+        # Check for convergence
+        if (u_old == u).all():
+            break
+
+        # M-step:
+        l = np.concatenate((y, u))
+        a_y, b_y = get_log_reg_params(c, l)
+        a_e0, b_0, cov_e0 = get_weighted_lin_reg_params(c, e, 1-l.ravel())
+        a_e1, b_1, cov_e1 = get_weighted_lin_reg_params(c, e, l.ravel())
+        u_old = u
+
+    return a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1
+
+
+def soft_label_EM(x_c, y, x_e, z_c, z_e, tol=1e-3):
+    c = np.concatenate((x_c, z_c))
+    e = np.concatenate((x_e, z_e))
+
+    # initialise from labelled data
+    a_y, b_y = get_log_reg_params(x_c, y)
+    idx_0 = np.where(y == 0)[0]
+    idx_1 = np.where(y == 1)[0]
+    a_e0, b_0, cov_e0 = get_lin_reg_params(x_c[idx_0], x_e[idx_0])
+    a_e1, b_1, cov_e1 = get_lin_reg_params(x_c[idx_1], x_e[idx_1])
+
+    converged = False
+    u_old = np.zeros((z_c.shape[0], 1))
+    while not converged:
+        # E-step: compute labels
+        p1 = predict_class_probs(z_c, z_e, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1)
+        p = np.concatenate((y, p1)) # probabilities for class 1
+        u = p1 > 0.5
+        l = np.concatenate((y, u))
+        w = (l * p + (1-l) * (1-p)).ravel()
+
+        # M-step:
+        a_y, b_y = get_log_reg_params(c, l, w)
+        a_e0, b_0, cov_e0 = get_weighted_lin_reg_params(c, e, 1-p.ravel())
+        a_e1, b_1, cov_e1 = get_weighted_lin_reg_params(c, e, p.ravel())
+
+        # Check for convergence
+        if max(np.abs(u_old-p1)) < tol:
+            converged = True
+        else:
+            u_old = p1
+
+    return a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1

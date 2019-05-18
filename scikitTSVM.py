@@ -80,7 +80,7 @@ class SKTSVM(BaseEstimator):
         
         # probabilities by Platt scaling
         if self.probability:
-            self.plattlr = LR()
+            self.plattlr = LR(solver='liblinear')
             preds = self.model.mygetPreds(labeledX)
             self.plattlr.fit( preds.reshape( -1, 1 ), labeledy )
         
