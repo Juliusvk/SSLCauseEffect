@@ -76,10 +76,16 @@ def get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, 
              x_e: (n_samples x d_e) np.array of effect features
     """
 
-    x_c = sample_from_mog(weights_c, means_c, covs_c, n_samples)
-    class_probs = sigmoid(fy_linear(x_c, a_y, b_y))  # P(Y=1 | X_C)
-    n_y = np.random.uniform(0, 1, (n_samples, 1))
-    y = np.ones((n_samples, 1)) * (class_probs > n_y)
+    n_0 = 0
+    n_1 = 1
+    while n_0 < 2 or n_1 < 2:
+        x_c = sample_from_mog(weights_c, means_c, covs_c, n_samples)
+        class_probs = sigmoid(fy_linear(x_c, a_y, b_y))  # P(Y=1 | X_C)
+        n_y = np.random.uniform(0, 1, (n_samples, 1))
+        y = np.ones((n_samples, 1)) * (class_probs > n_y)
+        n_0 = sum(y == 0)
+        n_1 = sum(y == 1)
+
     d_e = cov_e0[0].shape
     n_e0 = np.random.multivariate_normal(np.zeros(d_e), cov_e0, n_samples)
     n_e1 = np.random.multivariate_normal(np.zeros(d_e), cov_e1, n_samples)
