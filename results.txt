@@ -1,0 +1,13 @@
+Diabetes Dataset
+20 labelled observations, 200 unlabelled ones, 100 iterations
+Causal features: Pregnancies, DiabetesPedigreeFunction
+Effect features: Glucose
+
+Accuracy of linear logistic regression:  0.64855  +/-  0.0582507296092
+Accuracy of linear TSVM:  0.5871  +/-  0.0572851638734
+Accuracy of rbf TSVM:  0.58585  +/-  0.0552632563282
+Accuracy of semi-gen model (labelled only):  0.69705  +/-  0.0566705170261
+Accuracy of soft EM:  0.68425  +/-  0.0525517601989
+Accuracy of hard EM:  0.7121  +/-  0.0635538354468
+Accuracy of rbf label spread:  0.6489  +/-  0.0299881643319
+Accuracy of knn label spread:  0.67685  +/-  0.0607027800022

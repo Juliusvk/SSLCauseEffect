@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import Ridge
+from sklearn.semi_supervised import LabelPropagation
+from sklearn.semi_supervised import LabelSpreading
+from scikitTSVM import SKTSVM
 
 
 def sigmoid(x):
@@ -197,7 +200,7 @@ def hard_label_EM(x_c, y, x_e, z_c, z_e):
     return a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1
 
 
-def soft_label_EM(x_c, y, x_e, z_c, z_e, tol=1e-3):
+def soft_label_EM(x_c, y, x_e, z_c, z_e, converged=False, tol=1e-3):
     c = np.concatenate((x_c, z_c))
     e = np.concatenate((x_e, z_e))
 
@@ -208,7 +211,6 @@ def soft_label_EM(x_c, y, x_e, z_c, z_e, tol=1e-3):
     a_e0, b_0, cov_e0 = get_lin_reg_params(x_c[idx_0], x_e[idx_0])
     a_e1, b_1, cov_e1 = get_lin_reg_params(x_c[idx_1], x_e[idx_1])
 
-    converged = False
     u_old = np.zeros((z_c.shape[0], 1))
     while not converged:
         # E-step: compute labels
@@ -230,3 +232,144 @@ def soft_label_EM(x_c, y, x_e, z_c, z_e, tol=1e-3):
             u_old = p1
 
     return a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1
+
+
+def get_params(d_c, d_e):
+    weights_c = np.array([.3, .4, .3])  # mixture weights
+    means_c = 5 * np.array([-1 * np.ones((d_c, 1)), np.zeros((d_c, 1)), np.ones((d_c, 1))])  # mixture means
+    m = weights_c.shape[0]  # number of components in MoG
+    covs_c = np.zeros((m, d_c, d_c))
+    for i in range(m):
+        covs_c[i] = .25 * np.eye(d_c)  # mixture (co)variances
+
+    a_y = .5 * np.ones((d_c, 1))  # strength of influence of x_c
+    b_y = 0 * np.ones(1)  # class boundary
+
+    a_e0 = 1 * np.ones((d_c, d_e))  # dependence of x_e on x_c for class y=0
+    a_e1 = 1 * np.ones((d_c, d_e))  # dependence of x_e on x_c for class y=0
+    mu_y = 2  # dependence of x_e on y
+    b_0 = -mu_y * np.ones((1, d_e))
+    b_1 = mu_y * np.ones((1, d_e))
+    cov_e0 = .25 * np.eye(d_e)  # noise variance for n_e
+    cov_e1 = .25 * np.eye(d_e)  # noise variance for n_e
+    return weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1
+
+
+def run_methods(x_c, y, x_e, z_c, z_y, z_e):
+    x = np.concatenate((x_c, x_e), axis=1)
+    z = np.concatenate((z_c, z_e), axis=1)
+
+    # Baseline: Linear Logistic Regression
+    lin_lr = LogisticRegression(random_state=0, solver='liblinear').fit(x, y.ravel())
+    acc_lin_lr = lin_lr.score(z, z_y)
+    # hard_label_lin_lr = lin_lr.predict(z)
+    # soft_label_lin_lr = lin_lr.predict_proba(z)[:, 1]
+
+    # TRANSDUCTIVE APPROACHES
+    # merge labelled and unlabelled data (with label -1) for transductive methods
+    x_merged = np.concatenate((x, z))
+    y_merged = np.concatenate((y, -1 * np.ones((z.shape[0], 1)))).ravel().astype(int)
+
+    # Baseline: Linear TSVM: https://github.com/tmadl/semisup-learn/tree/master/methods
+    lin_tsvm = SKTSVM(kernel='linear')
+    lin_tsvm.fit(x_merged, y_merged)
+    acc_lin_tsvm = lin_tsvm.score(z, z_y)
+    # hard_label_lin_tsvm = lin_tsvm.predict(z)
+    # soft_label_lin_tsvm = lin_tsvm.predict_proba(z)[:, 1]
+
+    # Baseline: Non-Linear TSVM:  https://github.com/tmadl/semisup-learn/tree/master/methods
+    rbf_tsvm = SKTSVM(kernel='RBF')
+    rbf_tsvm.fit(x_merged, y_merged)
+    acc_rbf_tsvm = rbf_tsvm.score(z, z_y)
+    # hard_label_rbf_tsvm = rbf_tsvm.predict(z)
+    # soft_label_rbf_tsvm = rbf_tsvm.predict_proba(z)[:, 1]
+
+    # Baseline: Label Propagation RBF weights
+    try:
+        rbf_label_prop = LabelPropagation(kernel='rbf', gamma=20)
+        rbf_label_prop.fit(x_merged, y_merged)
+        acc_rbf_label_prop = rbf_label_prop.score(z, z_y)
+        # hard_label_rbf_label_prop= rbf_label_prop.predict(z)
+        # soft_label_rbf_label_prop = rbf_label_prop.predict_proba(z)[:, 1]
+    except:
+        acc_rbf_label_prop = []
+        print 'rbf label prop did not work'
+
+    # Baseline: Label Spreading with RBF weights
+    try:
+        rbf_label_spread = LabelSpreading(kernel='rbf', gamma=20)
+        rbf_label_spread.fit(x_merged, y_merged)
+        acc_rbf_label_spread = rbf_label_spread.score(z, z_y)
+        # hard_label_rbf_label_spread = rbf_label_spread.predict(z)
+        # soft_label_rbf_label_spread = rbf_label_spread.predict_proba(z)[:, 1]
+    except:
+        acc_rbf_label_spread = []
+        print 'rbf label spread did not work '
+
+    # THE K-NN VERSIONS ARE UNSTABLE UNLESS USING LARGE K
+    # Baseline: Label Propagation with k-NN weights
+    try:
+        knn_label_prop = LabelPropagation(kernel='knn', n_neighbors=11)
+        knn_label_prop.fit(x_merged, y_merged)
+        acc_knn_label_prop = knn_label_prop.score(z, z_y)
+        # hard_label_knn_label_prop = knn_label_prop.predict(z)
+        # soft_label_knn_label_prop = knn_label_prop.predict_proba(z)[:, 1]
+    except:
+        acc_knn_label_prop = []
+        print 'knn label prop did not work'
+
+    # Baseline: Label Spreading with k-NN weights
+    try:
+        knn_label_spread = LabelSpreading(kernel='knn', n_neighbors=11)
+        knn_label_spread.fit(x_merged, y_merged)
+        acc_knn_label_spread = knn_label_spread.score(z, z_y)
+        # hard_label_knn_label_spread = knn_label_spread.predict(z)
+        # soft_label_knn_label_spread = knn_label_spread.predict_proba(z)[:, 1]
+    except:
+        acc_knn_label_spread = []
+        print 'knn label spread did not work'
+
+    # Generative Models
+    # Semi-generative model on labelled data only
+    a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1 = soft_label_EM(x_c, y, x_e, z_c, z_e, converged=True)
+    soft_label_semigen = predict_class_probs(z_c, z_e, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1)
+    hard_label_semigen = soft_label_semigen > 0.5
+    acc_semigen_labelled = np.mean(hard_label_semigen == z_y)
+
+    # EM with soft labels
+    a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1 = soft_label_EM(x_c, y, x_e, z_c, z_e)
+    soft_label_soft_EM = predict_class_probs(z_c, z_e, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1)
+    hard_label_soft_EM = soft_label_soft_EM > 0.5
+    acc_soft_EM = np.mean(hard_label_soft_EM == z_y)
+
+    # EM with hard labels
+    a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1 = hard_label_EM(x_c, y, x_e, z_c, z_e)
+    soft_label_hard_EM = predict_class_probs(z_c, z_e, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1)
+    hard_label_hard_EM = soft_label_hard_EM > 0.5
+    acc_hard_EM = np.mean(hard_label_hard_EM == z_y)
+
+    return acc_lin_lr, acc_lin_tsvm, acc_rbf_tsvm, acc_rbf_label_prop, acc_rbf_label_spread, acc_knn_label_prop,\
+           acc_knn_label_spread, acc_semigen_labelled, acc_soft_EM, acc_hard_EM
+
+
+def collect_results(acc_lin_lr, acc_lin_tsvm, acc_rbf_tsvm, acc_rbf_label_prop, acc_rbf_label_spread, acc_knn_label_prop,
+                    acc_knn_label_spread, acc_semigen_labelled, acc_soft_EM, acc_hard_EM, x_c, y, x_e, z_c, z_y, z_e):
+    """Runs different SSL baselines and evaluates on unlabelled data (transductive)."""
+    # Run methods
+    a_lin_lr, a_lin_tsvm, a_rbf_tsvm, a_rbf_label_prop, a_rbf_label_spread, a_knn_label_prop,\
+    a_knn_label_spread, a_semigen_labelled, a_soft_EM, a_hard_EM = run_methods(x_c, y, x_e, z_c, z_y, z_e)
+
+    # Store results
+    acc_lin_lr.append(a_lin_lr)
+    acc_lin_tsvm.append(a_lin_tsvm)
+    acc_rbf_tsvm.append(a_rbf_tsvm)
+    acc_rbf_label_prop.append(a_rbf_label_prop)
+    acc_rbf_label_spread.append(a_rbf_label_spread)
+    acc_knn_label_prop.append(a_knn_label_prop)
+    acc_knn_label_spread.append(a_knn_label_spread)
+    acc_semigen_labelled.append(a_semigen_labelled)
+    acc_soft_EM.append(a_soft_EM)
+    acc_hard_EM.append(a_hard_EM)
+
+    return acc_lin_lr, acc_lin_tsvm, acc_rbf_tsvm, acc_rbf_label_prop, acc_rbf_label_spread, acc_knn_label_prop, \
+           acc_knn_label_spread, acc_semigen_labelled, acc_soft_EM, acc_hard_EM
