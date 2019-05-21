@@ -1,6 +1,5 @@
 import SSLCauseEffect as ssl
 import numpy as np
-
 import matplotlib.pyplot as plt
 import warnings
 warnings.simplefilter("ignore", category=DeprecationWarning)

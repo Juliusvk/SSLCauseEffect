@@ -12,7 +12,7 @@ idx = np.arange(diabetes_data.shape[0])
 n_iter = 100
 n_labelled = 20
 n_unlabelled = 200
-idx_cau = [0, 6, 7]
+idx_cau = [0, 6]
 idx_eff = [1]
 
 acc_lin_lr = []
