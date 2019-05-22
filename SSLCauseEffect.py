@@ -149,23 +149,37 @@ def get_log_reg_params(x, y, weight=None):
     return np.transpose(lr_c_only.coef_), lr_c_only.intercept_
 
 
-def get_weighted_lin_reg_params(x_c, x_e, w):
+def get_weighted_lin_reg_params(x_c, x_e, w, lam=1e-4):
     ridge = Ridge().fit(x_c, x_e, sample_weight=w)
     a = np.transpose(ridge.coef_)
     b = ridge.intercept_.reshape((1, x_e.shape[1]))
     sq_res = np.square(x_e - ridge.predict(x_c))
     sum_weighted_sq_res = np.sum(np.multiply(w.reshape((w.shape[0], 1)), sq_res), axis=0)
-    cov = np.diag(np.divide(sum_weighted_sq_res, np.sum(w)))
+    cov = np.diag(np.divide(sum_weighted_sq_res, np.sum(w))) + np.diag(lam * np.ones((x_e.shape[1], x_e.shape[1])))
     return a, b, cov
 
 
-def get_lin_reg_params(x_c, x_e):
+def get_lin_reg_params(x_c, x_e, lam=1e-4):
     ridge = Ridge().fit(x_c, x_e)
     a = np.transpose(ridge.coef_)
     b = ridge.intercept_.reshape((1, x_e.shape[1]))
     sum_sq_res = np.sum(np.square(x_e - ridge.predict(x_c)), axis=0)
-    cov = np.diag(np.divide(sum_sq_res, x_c.shape[0]))
+    cov = np.diag(np.divide(sum_sq_res, x_c.shape[0])) + np.diag(lam * np.ones((x_e.shape[1], x_e.shape[1])))
     return a, b, cov
+
+
+def discrete_data_EM(x_c, y, x_e, z_c, z_y, z_e):
+    c = np.concatenate((x_c, z_c))
+    e = np.concatenate((x_e, z_e))
+    LRC = LogisticRegression(random_state=0, solver='liblinear')
+    LRC.fit(x_c, y.ravel())
+    idx_0 = np.where(y == 0)[0]
+    idx_1 = np.where(y == 1)[0]
+    LR0 = LogisticRegression(random_state=0, solver='liblinear')
+    LR0.fit(x_c[idx_0], x_e[idx_0])
+    LR1 = LogisticRegression(random_state=0, solver='liblinear')
+    LR1.fit(x_c[idx_1], x_e[idx_1])
+    pass
 
 
 def hard_label_EM(x_c, y, x_e, z_c, z_e):
@@ -234,27 +248,6 @@ def soft_label_EM(x_c, y, x_e, z_c, z_e, converged=False, tol=1e-3):
     return a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1
 
 
-def get_params(d_c, d_e):
-    weights_c = np.array([.3, .4, .3])  # mixture weights
-    means_c = 5 * np.array([-1 * np.ones((d_c, 1)), np.zeros((d_c, 1)), np.ones((d_c, 1))])  # mixture means
-    m = weights_c.shape[0]  # number of components in MoG
-    covs_c = np.zeros((m, d_c, d_c))
-    for i in range(m):
-        covs_c[i] = .25 * np.eye(d_c)  # mixture (co)variances
-
-    a_y = .5 * np.ones((d_c, 1))  # strength of influence of x_c
-    b_y = 0 * np.ones(1)  # class boundary
-
-    a_e0 = 1 * np.ones((d_c, d_e))  # dependence of x_e on x_c for class y=0
-    a_e1 = 1 * np.ones((d_c, d_e))  # dependence of x_e on x_c for class y=0
-    mu_y = 2  # dependence of x_e on y
-    b_0 = -mu_y * np.ones((1, d_e))
-    b_1 = mu_y * np.ones((1, d_e))
-    cov_e0 = .25 * np.eye(d_e)  # noise variance for n_e
-    cov_e1 = .25 * np.eye(d_e)  # noise variance for n_e
-    return weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1
-
-
 def run_methods(x_c, y, x_e, z_c, z_y, z_e):
     x = np.concatenate((x_c, x_e), axis=1)
     z = np.concatenate((z_c, z_e), axis=1)
@@ -286,7 +279,7 @@ def run_methods(x_c, y, x_e, z_c, z_y, z_e):
 
     # Baseline: Label Propagation RBF weights
     try:
-        rbf_label_prop = LabelPropagation(kernel='rbf', gamma=20)
+        rbf_label_prop = LabelPropagation(kernel='rbf')
         rbf_label_prop.fit(x_merged, y_merged)
         acc_rbf_label_prop = rbf_label_prop.score(z, z_y)
         # hard_label_rbf_label_prop= rbf_label_prop.predict(z)
@@ -297,7 +290,7 @@ def run_methods(x_c, y, x_e, z_c, z_y, z_e):
 
     # Baseline: Label Spreading with RBF weights
     try:
-        rbf_label_spread = LabelSpreading(kernel='rbf', gamma=20)
+        rbf_label_spread = LabelSpreading(kernel='rbf')
         rbf_label_spread.fit(x_merged, y_merged)
         acc_rbf_label_spread = rbf_label_spread.score(z, z_y)
         # hard_label_rbf_label_spread = rbf_label_spread.predict(z)
@@ -348,28 +341,52 @@ def run_methods(x_c, y, x_e, z_c, z_y, z_e):
     hard_label_hard_EM = soft_label_hard_EM > 0.5
     acc_hard_EM = np.mean(hard_label_hard_EM == z_y)
 
+    # Conditional label prop
+    acc_cond_prop = conditional_prop(x_c, y, x_e, z_c, z_y, z_e)
+
     return acc_lin_lr, acc_lin_tsvm, acc_rbf_tsvm, acc_rbf_label_prop, acc_rbf_label_spread, acc_knn_label_prop,\
-           acc_knn_label_spread, acc_semigen_labelled, acc_soft_EM, acc_hard_EM
+           acc_knn_label_spread, acc_semigen_labelled, acc_soft_EM, acc_hard_EM, acc_cond_prop
 
 
-def collect_results(acc_lin_lr, acc_lin_tsvm, acc_rbf_tsvm, acc_rbf_label_prop, acc_rbf_label_spread, acc_knn_label_prop,
-                    acc_knn_label_spread, acc_semigen_labelled, acc_soft_EM, acc_hard_EM, x_c, y, x_e, z_c, z_y, z_e):
-    """Runs different SSL baselines and evaluates on unlabelled data (transductive)."""
-    # Run methods
-    a_lin_lr, a_lin_tsvm, a_rbf_tsvm, a_rbf_label_prop, a_rbf_label_spread, a_knn_label_prop,\
-    a_knn_label_spread, a_semigen_labelled, a_soft_EM, a_hard_EM = run_methods(x_c, y, x_e, z_c, z_y, z_e)
+def conditional_prop(x_c, y, x_e, z_c, z_y, z_e):
+    c = np.concatenate((x_c, z_c))
+    e = np.concatenate((x_e, z_e))
+    y_unl = -1 * np.ones((z_c.shape[0],1))
+    c_unl = z_c
+    e_unl = z_e
+    idx_0 = np.where(y == 0)[0]
+    idx_1 = np.where(y == 1)[0]
+    c_0 = x_c[idx_0]
+    c_1 = x_c[idx_1]
+    e_0 = x_e[idx_0]
+    e_1 = x_e[idx_1]
 
-    # Store results
-    acc_lin_lr.append(a_lin_lr)
-    acc_lin_tsvm.append(a_lin_tsvm)
-    acc_rbf_tsvm.append(a_rbf_tsvm)
-    acc_rbf_label_prop.append(a_rbf_label_prop)
-    acc_rbf_label_spread.append(a_rbf_label_spread)
-    acc_knn_label_prop.append(a_knn_label_prop)
-    acc_knn_label_spread.append(a_knn_label_spread)
-    acc_semigen_labelled.append(a_semigen_labelled)
-    acc_soft_EM.append(a_soft_EM)
-    acc_hard_EM.append(a_hard_EM)
+    # initialise from labelled data
+    R0 = Ridge().fit(c_0, e_0)
+    R1 = Ridge().fit(c_1, e_1)
 
-    return acc_lin_lr, acc_lin_tsvm, acc_rbf_tsvm, acc_rbf_label_prop, acc_rbf_label_spread, acc_knn_label_prop, \
-           acc_knn_label_spread, acc_semigen_labelled, acc_soft_EM, acc_hard_EM
+    while sum(y_unl == -1) > 0:
+        # check what is still unlabelled
+        idx_remaining = np.where(y_unl == -1)[0]
+
+        # predict for unlabelled points
+        err_0 = np.sum(np.square(z_e[idx_remaining] - R0.predict(z_c[idx_remaining])), axis=1)
+        err_1 = np.sum(np.square(z_e[idx_remaining] - R1.predict(z_c[idx_remaining])), axis=1)
+
+        # assign best fitting point to correct label
+        if min(err_0) < min(err_1):
+            # update R0
+            idx = idx_remaining[np.argmin(err_0)]
+            y_unl[idx] = 0
+            np.append(c_0, z_c[idx])
+            np.append(e_0, z_e[idx])
+            R0 = Ridge().fit(c_0, e_0)
+        else:
+            # update R1
+            idx = idx_remaining[np.argmin(err_1)]
+            y_unl[idx] = 1
+            np.append(c_1, z_c[idx])
+            np.append(e_1, z_e[idx])
+            R1 = Ridge().fit(c_1, e_1)
+
+    return np.mean(y_unl == z_y)
