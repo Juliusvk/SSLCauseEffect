@@ -149,22 +149,28 @@ def get_log_reg_params(x, y, weight=None):
     return np.transpose(lr_c_only.coef_), lr_c_only.intercept_
 
 
-def get_weighted_lin_reg_params(x_c, x_e, w, lam=1e-4):
+def get_weighted_lin_reg_params(x_c, x_e, w, lam=1e-3):
     ridge = Ridge().fit(x_c, x_e, sample_weight=w)
     a = np.transpose(ridge.coef_)
     b = ridge.intercept_.reshape((1, x_e.shape[1]))
     sq_res = np.square(x_e - ridge.predict(x_c))
     sum_weighted_sq_res = np.sum(np.multiply(w.reshape((w.shape[0], 1)), sq_res), axis=0)
-    cov = np.diag(np.divide(sum_weighted_sq_res, np.sum(w))) + np.diag(lam * np.ones((x_e.shape[1], x_e.shape[1])))
+    cov = np.diag(np.divide(sum_weighted_sq_res, np.sum(w)))
+    cov += np.diag(lam * np.ones((x_e.shape[1], x_e.shape[1])))
+    if np.linalg.matrix_rank(cov) < x_e.shape[1]:
+        print ' MATRIX SINGULAR IN WEIGHTED REG'
     return a, b, cov
 
 
-def get_lin_reg_params(x_c, x_e, lam=1e-4):
+def get_lin_reg_params(x_c, x_e, lam=1e-3):
     ridge = Ridge().fit(x_c, x_e)
     a = np.transpose(ridge.coef_)
     b = ridge.intercept_.reshape((1, x_e.shape[1]))
     sum_sq_res = np.sum(np.square(x_e - ridge.predict(x_c)), axis=0)
-    cov = np.diag(np.divide(sum_sq_res, x_c.shape[0])) + np.diag(lam * np.ones((x_e.shape[1], x_e.shape[1])))
+    cov = np.diag(np.divide(sum_sq_res, x_c.shape[0]))
+    cov += np.diag(lam * np.ones((x_e.shape[1], x_e.shape[1])))
+    if np.linalg.matrix_rank(cov) < x_e.shape[1]:
+        print ' MATRIX SINGULAR'
     return a, b, cov
 
 
@@ -214,7 +220,7 @@ def hard_label_EM(x_c, y, x_e, z_c, z_e):
     return a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1
 
 
-def soft_label_EM(x_c, y, x_e, z_c, z_e, converged=False, tol=1e-3):
+def soft_label_EM(x_c, y, x_e, z_c, z_e, converged=False, tol=1e-2):
     c = np.concatenate((x_c, z_c))
     e = np.concatenate((x_e, z_e))
 
