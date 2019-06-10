@@ -60,7 +60,7 @@ def get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, 
 
     X_C ~ MoG(weights_c, means_c, covs_c),      X_C is in R^d_c
     Y := I[sigmoid(x_C * a_y + b_y > N_Y],      N_Y ~ U[0,1],       Y is in {0,1}
-    X_E := a_e * X_C + b_1*Y + b_0*(1-Y) + N_E,     N_E ~ N(0, cov_e),      X_E is in R^d_e
+    X_E := (a_e1 * X_C + b_1) * Y + (a_e0 * X_C + b_0) * (1-Y) + N_E,     N_E ~ N(0, cov_e),      X_E is in R^d_e
 
     :param weights_c: (m x 1) np.array - weights of mixture components which have to sum to 1
     :param means_c: (m x d_c) np.array of means
@@ -78,9 +78,9 @@ def get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, 
              y: (n_samples x 1) np.array of class labels
              x_e: (n_samples x d_e) np.array of effect features
     """
-
+    # ensure at least 2 samples per class
     n_0 = 0
-    n_1 = 1
+    n_1 = 0
     while n_0 < 2 or n_1 < 2:
         x_c = sample_from_mog(weights_c, means_c, covs_c, n_samples)
         class_probs = sigmoid(fy_linear(x_c, a_y, b_y))  # P(Y=1 | X_C)
@@ -96,6 +96,18 @@ def get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, 
     x_e1 = np.matmul(x_c, a_e1) + b_1 + n_e1
     x_e = np.multiply(y == 0, x_e0) + np.multiply(y == 1, x_e1)
     return x_c, y, x_e
+
+
+def plot_data(x_c, y, x_e, z_c, z_e):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.scatter(z_c, z_e, color='grey', marker='.')
+    ax.scatter(x_c[y == 0], x_e[y == 0], color='blue', marker='.')
+    ax.scatter(x_c[y == 1], x_e[y == 1], color='red', marker='.')
+    ax.set(xlabel='Causal features $X_C$', ylabel='Effect features $X_E$')
+    # ax.legend(loc='best')
+    # plt.show()
+    return fig
 
 
 def predict_class_probs(x_c, x_e, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1):
@@ -131,18 +143,6 @@ def predict_class_probs(x_c, x_e, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1
     return p1
 
 
-def plot_data(x_c, y, x_e, z_c, z_e):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.scatter(z_c, z_e, color='grey', marker='.')
-    ax.scatter(x_c[y == 0], x_e[y == 0], color='blue', marker='.')
-    ax.scatter(x_c[y == 1], x_e[y == 1], color='red', marker='.')
-    ax.set(xlabel='Causal features $X_C$', ylabel='Effect features $X_E$')
-    # ax.legend(loc='best')
-    # plt.show()
-    return fig
-
-
 def get_log_reg_params(x, y, weight=None):
     lr_c_only = LogisticRegression(random_state=0, solver='liblinear')
     lr_c_only.fit(x, y.ravel(), sample_weight=weight)
@@ -158,7 +158,7 @@ def get_weighted_lin_reg_params(x_c, x_e, w, lam=1e-3):
     cov = np.diag(np.divide(sum_weighted_sq_res, np.sum(w)))
     cov += np.diag(lam * np.ones((x_e.shape[1], x_e.shape[1])))
     if np.linalg.matrix_rank(cov) < x_e.shape[1]:
-        print ' MATRIX SINGULAR IN WEIGHTED REG'
+        print 'MATRIX SINGULAR IN WEIGHTED REG'
     return a, b, cov
 
 
@@ -170,7 +170,7 @@ def get_lin_reg_params(x_c, x_e, lam=1e-3):
     cov = np.diag(np.divide(sum_sq_res, x_c.shape[0]))
     cov += np.diag(lam * np.ones((x_e.shape[1], x_e.shape[1])))
     if np.linalg.matrix_rank(cov) < x_e.shape[1]:
-        print ' MATRIX SINGULAR'
+        print 'MATRIX SINGULAR'
     return a, b, cov
 
 
