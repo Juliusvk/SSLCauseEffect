@@ -4,13 +4,6 @@ import matplotlib.pyplot as plt
 import warnings
 warnings.simplefilter("ignore", category=DeprecationWarning)
 
-# Define parameters
-n_labelled = 10
-n_unlabelled = 200
-n_iterations = 100
-d_c = 2  # input dimension
-d_e = 2  # output dimension
-
 
 def get_params(d_c, d_e):
     weights_c = np.array([.5, .5])  # mixture weights
@@ -34,7 +27,14 @@ def get_params(d_c, d_e):
 
 
 # Get parameters
+n_labelled = 10
+n_unlabelled = 200
+n_iterations = 100
+d_c = 2  # input dimension
+d_e = 2  # output dimension
 weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1 = get_params(d_c, d_e)
+
+
 
 # Get data
 x_c, y, x_e = ssl.get_data_linear(weights_c, means_c, covs_c, a_y, b_y,
