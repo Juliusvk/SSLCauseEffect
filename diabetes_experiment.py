@@ -5,27 +5,26 @@ import SSLCauseEffect as ssl
 import warnings
 warnings.simplefilter("ignore", category=DeprecationWarning)
 
-n_iter = 100
+# Set simulation settings
+n_iter = 10
 n_labelled = 20
 n_unlabelled = 200
 
+# Read data
 diabetes = pd.read_csv("diabetes.csv")
 data = diabetes.values.astype(float)
 idx = np.arange(data.shape[0])
-idx_cau = [0, 6, 5]
+
+# Define cause and effect features and target
+idx_cau = [5]
 idx_eff = [1]
 idx_y = [8]
 
-# heart = pd.read_csv("heart.csv")
-# data = heart.values.astype(float)
-# data[:, 0:13] = np.divide(data[:, 0:13] - np.mean(data[:, 0:13]), np.std(data[:, 0:13]))
-# print data
-# idx_cau = [11, 1, 12]
-# idx_eff = [2]
-# idx_y = [13]
+# Preprocess data (standardise and dummy code categorical variables)
+data[:, idx_cau] = np.divide(data[:, idx_cau] - np.mean(data[:, idx_cau], axis=0), np.std(data[:, idx_cau], axis=0))
+data[:, idx_eff] = np.divide(data[:, idx_eff] - np.mean(data[:, idx_eff], axis=0), np.std(data[:, idx_eff], axis=0))
 
-idx = np.arange(data.shape[0])
-
+# Initialise result arrays
 acc_lin_lr = []
 acc_lin_tsvm = []
 acc_rbf_tsvm = []
@@ -37,6 +36,7 @@ acc_semigen_labelled = []
 acc_soft_EM = []
 acc_hard_EM = []
 acc_cond_prop = []
+
 for i in range(n_iter):
     print 'iteration: ', i, '/', n_iter
     n_0 = 0
@@ -70,9 +70,7 @@ for i in range(n_iter):
     acc_soft_EM.append(a_soft_EM)
     acc_hard_EM.append(a_hard_EM)
     acc_cond_prop.append(a_cond_prop)
-    # except:
-    #     print n_iter
-    #     break
+
 
 
 print 'Accuracy of linear logistic regression: ', np.mean(acc_lin_lr), ' +/- ', np.std(acc_lin_lr)
@@ -86,22 +84,7 @@ print 'Accuracy of cond prop: ', np.mean(acc_cond_prop), ' +/- ', np.std(acc_con
 print 'Accuracy of rbf label spread: ', np.mean(acc_rbf_label_spread), ' +/- ', np.std(acc_rbf_label_spread)
 print 'Accuracy of knn label spread: ', np.mean(acc_knn_label_spread), ' +/- ', np.std(acc_knn_label_spread)
 print 'Accuracy of rbf label prop: ', np.mean(acc_rbf_label_prop), ' +/- ', np.std(acc_rbf_label_prop)
-# print 'Accuracy of knn label prop: ', np.mean(acc_knn_label_prop), ' +/- ', np.std(acc_knn_label_prop)
+print 'Accuracy of knn label prop: ', np.mean(acc_knn_label_prop), ' +/- ', np.std(acc_knn_label_prop)
 
 
-# heart = pd.read_csv("heart.csv")
-# # print heart.head()
-# X_C = np.transpose(np.array([heart.ca, heart.sex, heart.trestbps, heart.chol]))
-# X_E = np.transpose(np.array([heart.cp, heart.thal, heart.oldpeak, heart.exang]))
-# Y = np.transpose(np.array([heart.target]))
-# print diabetes.head()
-# X_C = np.transpose(np.array([diabetes.BMI, diabetes.Pregnancies, diabetes.DiabetesPedigreeFunction, diabetes.Age]))
-# X_E = np.transpose(np.array([diabetes.Glucose, diabetes.BloodPressure, diabetes.Insulin]))
-# Y = np.transpose(np.array([diabetes.Outcome]))
-#
 
-# acc_lin_lr, acc_lin_tsvm, acc_rbf_tsvm, acc_rbf_label_prop, acc_rbf_label_spread, acc_knn_label_prop, \
-#     acc_knn_label_spread, acc_semigen_labelled, acc_soft_EM, acc_hard_EM \
-#     = ssl.collect_results(acc_lin_lr, acc_lin_tsvm, acc_rbf_tsvm, acc_rbf_label_prop, acc_rbf_label_spread,
-#                           acc_knn_label_prop, acc_knn_label_spread, acc_semigen_labelled, acc_soft_EM, acc_hard_EM,
-#                           x_c, y, x_e, z_c, z_y, z_e)

@@ -34,82 +34,6 @@ def fy_linear(x, a, b):
     return np.matmul(x, a) + b
 
 
-def sample_from_mog(weights, means, covs, n_samples):
-    """
-    Generates samples from a d-dimensional mixture of Gaussians
-    :param weights: (m x 1) np.array - weights of mixture components which have to sum to 1
-    :param means: (m x d) np.array of means
-    :param covs: (m x d x d) np.array of covariances
-    :param n_samples: int number of samples to be drawn
-    :return: (n_samples x d) np.array of samples from d-dimensional mixture of Gaussians
-    """
-
-    d = means.shape[1]
-    comps = np.random.multinomial(1, weights, n_samples)  # (n_samplesxm) mask of components
-    sample_means = np.einsum('ij,jkl->ikl', comps, means)  # (n_samplesxd) matrix of sample means
-    sample_covs = np.einsum('ij,jkl->ikl', comps, covs)  # (n_samplesxdxd) tensor of sample variances
-    samples = np.zeros((n_samples, d))
-    for i in range(n_samples):
-        samples[i] = np.random.multivariate_normal(sample_means[i].ravel(), sample_covs[i])
-    return samples
-
-
-def get_data_linear(weights_c, means_c, covs_c, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1, n_samples):
-    """
-    Generates a synthetic data set of size n_samples according to the generative model:
-
-    X_C ~ MoG(weights_c, means_c, covs_c),      X_C is in R^d_c
-    Y := I[sigmoid(x_C * a_y + b_y > N_Y],      N_Y ~ U[0,1],       Y is in {0,1}
-    X_E := (a_e1 * X_C + b_1) * Y + (a_e0 * X_C + b_0) * (1-Y) + N_E,     N_E ~ N(0, cov_e),      X_E is in R^d_e
-
-    :param weights_c: (m x 1) np.array - weights of mixture components which have to sum to 1
-    :param means_c: (m x d_c) np.array of means
-    :param covs_c: (m x d_c x d_c) np.array of covariances
-    :param a_y: (d_c x 1) np.array of weights for logistic regression of Y on X_C
-    :param b_y: (1 x 1) bias term for logistic regression of Y on X_C
-    :param a_e0: (d_c x d_e) np.array of weights for map X_C, Y=0 -> X_E
-    :param a_e1: (d_c x d_e) np.array of weights for map X_C, Y=1 -> X_E
-    :param b_0: (1 x d_e) np.array bias for class Y=0
-    :param b_1: (1 x d_e) np.array bias for class Y=1
-    :param cov_e0: (d_e x d_e) np.array covariance for noise  N_E | Y=0
-    :param cov_e1: (d_e x d_e) np.array covariance for noise  N_E | Y=1
-    :param n_samples:
-    :return: x_c: (n_samples x d_c) np.array of causal features
-             y: (n_samples x 1) np.array of class labels
-             x_e: (n_samples x d_e) np.array of effect features
-    """
-    # ensure at least 2 samples per class
-    n_0 = 0
-    n_1 = 0
-    while n_0 < 2 or n_1 < 2:
-        x_c = sample_from_mog(weights_c, means_c, covs_c, n_samples)
-        class_probs = sigmoid(fy_linear(x_c, a_y, b_y))  # P(Y=1 | X_C)
-        n_y = np.random.uniform(0, 1, (n_samples, 1))
-        y = np.ones((n_samples, 1)) * (class_probs > n_y)
-        n_0 = sum(y == 0)
-        n_1 = sum(y == 1)
-
-    d_e = cov_e0[0].shape
-    n_e0 = np.random.multivariate_normal(np.zeros(d_e), cov_e0, n_samples)
-    n_e1 = np.random.multivariate_normal(np.zeros(d_e), cov_e1, n_samples)
-    x_e0 = np.matmul(x_c, a_e0) + b_0 + n_e0
-    x_e1 = np.matmul(x_c, a_e1) + b_1 + n_e1
-    x_e = np.multiply(y == 0, x_e0) + np.multiply(y == 1, x_e1)
-    return x_c, y, x_e
-
-
-def plot_data(x_c, y, x_e, z_c, z_e):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.scatter(z_c, z_e, color='grey', marker='.')
-    ax.scatter(x_c[y == 0], x_e[y == 0], color='blue', marker='.')
-    ax.scatter(x_c[y == 1], x_e[y == 1], color='red', marker='.')
-    ax.set(xlabel='Causal features $X_C$', ylabel='Effect features $X_E$')
-    # ax.legend(loc='best')
-    # plt.show()
-    return fig
-
-
 def predict_class_probs(x_c, x_e, a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1):
     """
     Assigns examples of the form (x_c, x_e) to the more likely class given the (estimated) parameters.
@@ -172,20 +96,6 @@ def get_lin_reg_params(x_c, x_e, lam=1e-3):
     if np.linalg.matrix_rank(cov) < x_e.shape[1]:
         print 'MATRIX SINGULAR'
     return a, b, cov
-
-
-def discrete_data_EM(x_c, y, x_e, z_c, z_y, z_e):
-    c = np.concatenate((x_c, z_c))
-    e = np.concatenate((x_e, z_e))
-    LRC = LogisticRegression(random_state=0, solver='liblinear')
-    LRC.fit(x_c, y.ravel())
-    idx_0 = np.where(y == 0)[0]
-    idx_1 = np.where(y == 1)[0]
-    LR0 = LogisticRegression(random_state=0, solver='liblinear')
-    LR0.fit(x_c[idx_0], x_e[idx_0])
-    LR1 = LogisticRegression(random_state=0, solver='liblinear')
-    LR1.fit(x_c[idx_1], x_e[idx_1])
-    pass
 
 
 def hard_label_EM(x_c, y, x_e, z_c, z_e):
@@ -252,6 +162,60 @@ def soft_label_EM(x_c, y, x_e, z_c, z_e, converged=False, tol=1e-2):
             u_old = p1
 
     return a_y, b_y, a_e0, a_e1, b_0, b_1, cov_e0, cov_e1
+
+
+def conditional_prop(x_c, y, x_e, z_c, z_y, z_e):
+    y_unl = -1 * np.ones((z_c.shape[0],1))
+    idx_0 = np.where(y == 0)[0]
+    idx_1 = np.where(y == 1)[0]
+    c_0 = x_c[idx_0]
+    c_1 = x_c[idx_1]
+    e_0 = x_e[idx_0]
+    e_1 = x_e[idx_1]
+
+    # initialise from labelled data
+    R0 = Ridge().fit(c_0, e_0)
+    R1 = Ridge().fit(c_1, e_1)
+
+    while sum(y_unl == -1) > 0:
+        # check what is still unlabelled
+        idx_remaining = np.where(y_unl == -1)[0]
+
+        # predict for unlabelled points
+        err_0 = np.sum(np.square(z_e[idx_remaining] - R0.predict(z_c[idx_remaining])), axis=1)
+        err_1 = np.sum(np.square(z_e[idx_remaining] - R1.predict(z_c[idx_remaining])), axis=1)
+
+        # assign best fitting point to correct label
+        if min(err_0) < min(err_1):
+            # update R0
+            idx = idx_remaining[np.argmin(err_0)]
+            y_unl[idx] = 0
+            np.append(c_0, z_c[idx])
+            np.append(e_0, z_e[idx])
+            R0 = Ridge().fit(c_0, e_0)
+        else:
+            # update R1
+            idx = idx_remaining[np.argmin(err_1)]
+            y_unl[idx] = 1
+            np.append(c_1, z_c[idx])
+            np.append(e_1, z_e[idx])
+            R1 = Ridge().fit(c_1, e_1)
+
+    return np.mean(y_unl == z_y)
+
+
+def discrete_data_EM(x_c, y, x_e, z_c, z_y, z_e):
+    c = np.concatenate((x_c, z_c))
+    e = np.concatenate((x_e, z_e))
+    LRC = LogisticRegression(random_state=0, solver='liblinear')
+    LRC.fit(x_c, y.ravel())
+    idx_0 = np.where(y == 0)[0]
+    idx_1 = np.where(y == 1)[0]
+    LR0 = LogisticRegression(random_state=0, solver='liblinear')
+    LR0.fit(x_c[idx_0], x_e[idx_0])
+    LR1 = LogisticRegression(random_state=0, solver='liblinear')
+    LR1.fit(x_c[idx_1], x_e[idx_1])
+    pass
 
 
 def run_methods(x_c, y, x_e, z_c, z_y, z_e):
@@ -352,47 +316,3 @@ def run_methods(x_c, y, x_e, z_c, z_y, z_e):
 
     return acc_lin_lr, acc_lin_tsvm, acc_rbf_tsvm, acc_rbf_label_prop, acc_rbf_label_spread, acc_knn_label_prop,\
            acc_knn_label_spread, acc_semigen_labelled, acc_soft_EM, acc_hard_EM, acc_cond_prop
-
-
-def conditional_prop(x_c, y, x_e, z_c, z_y, z_e):
-    c = np.concatenate((x_c, z_c))
-    e = np.concatenate((x_e, z_e))
-    y_unl = -1 * np.ones((z_c.shape[0],1))
-    c_unl = z_c
-    e_unl = z_e
-    idx_0 = np.where(y == 0)[0]
-    idx_1 = np.where(y == 1)[0]
-    c_0 = x_c[idx_0]
-    c_1 = x_c[idx_1]
-    e_0 = x_e[idx_0]
-    e_1 = x_e[idx_1]
-
-    # initialise from labelled data
-    R0 = Ridge().fit(c_0, e_0)
-    R1 = Ridge().fit(c_1, e_1)
-
-    while sum(y_unl == -1) > 0:
-        # check what is still unlabelled
-        idx_remaining = np.where(y_unl == -1)[0]
-
-        # predict for unlabelled points
-        err_0 = np.sum(np.square(z_e[idx_remaining] - R0.predict(z_c[idx_remaining])), axis=1)
-        err_1 = np.sum(np.square(z_e[idx_remaining] - R1.predict(z_c[idx_remaining])), axis=1)
-
-        # assign best fitting point to correct label
-        if min(err_0) < min(err_1):
-            # update R0
-            idx = idx_remaining[np.argmin(err_0)]
-            y_unl[idx] = 0
-            np.append(c_0, z_c[idx])
-            np.append(e_0, z_e[idx])
-            R0 = Ridge().fit(c_0, e_0)
-        else:
-            # update R1
-            idx = idx_remaining[np.argmin(err_1)]
-            y_unl[idx] = 1
-            np.append(c_1, z_c[idx])
-            np.append(e_1, z_e[idx])
-            R1 = Ridge().fit(c_1, e_1)
-
-    return np.mean(y_unl == z_y)
