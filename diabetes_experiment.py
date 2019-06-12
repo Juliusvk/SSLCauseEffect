@@ -6,7 +6,7 @@ import warnings
 warnings.simplefilter("ignore", category=DeprecationWarning)
 
 # Set simulation settings
-n_iter = 10
+n_iter = 100
 n_labelled = 20
 n_unlabelled = 200
 
@@ -16,7 +16,7 @@ data = diabetes.values.astype(float)
 idx = np.arange(data.shape[0])
 
 # Define cause and effect features and target
-idx_cau = [5]
+idx_cau = [0, 5, 6]
 idx_eff = [1]
 idx_y = [8]
 

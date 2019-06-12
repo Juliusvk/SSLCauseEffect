@@ -4,7 +4,6 @@ This script contains code to run experiments for semi-supervised learning (SSL) 
 
 from scipy.stats import multivariate_normal
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import Ridge
 from sklearn.semi_supervised import LabelPropagation
@@ -73,7 +72,7 @@ def get_log_reg_params(x, y, weight=None):
     return np.transpose(lr_c_only.coef_), lr_c_only.intercept_
 
 
-def get_weighted_lin_reg_params(x_c, x_e, w, lam=1e-3):
+def get_weighted_lin_reg_params(x_c, x_e, w, lam=1e-2):
     ridge = Ridge().fit(x_c, x_e, sample_weight=w)
     a = np.transpose(ridge.coef_)
     b = ridge.intercept_.reshape((1, x_e.shape[1]))
@@ -86,7 +85,7 @@ def get_weighted_lin_reg_params(x_c, x_e, w, lam=1e-3):
     return a, b, cov
 
 
-def get_lin_reg_params(x_c, x_e, lam=1e-3):
+def get_lin_reg_params(x_c, x_e, lam=1e-2):
     ridge = Ridge().fit(x_c, x_e)
     a = np.transpose(ridge.coef_)
     b = ridge.intercept_.reshape((1, x_e.shape[1]))
@@ -204,18 +203,166 @@ def conditional_prop(x_c, y, x_e, z_c, z_y, z_e):
     return np.mean(y_unl == z_y)
 
 
-def discrete_data_EM(x_c, y, x_e, z_c, z_y, z_e):
-    c = np.concatenate((x_c, z_c))
-    e = np.concatenate((x_e, z_e))
-    LRC = LogisticRegression(random_state=0, solver='liblinear')
-    LRC.fit(x_c, y.ravel())
+def disc_eff_semigen(x_c, y, x_e, z_c, z_e, weight=None):
+    """
+    This function fits a semi-generative model for categorical effect features, using a logistic regression not only for
+    P(Y|X_C), but also for P(X_E|Y,X_C). The model is fitted on the labelled input data (x_c,y,x_e) and then applied to
+    the unlabelled sample (z_c,z_e) to predict label probabilities.
+    :param x_c: causal features of labelled data
+    :param y: labels
+    :param x_e: effect features of labelled data
+    :param z_c: causal features of unlabelled data
+    :param z_e: effect features of unlabelled data
+    :param weight: weight associated with the labelled samples
+    :return:
+    """
+    # LR fit for P(Y|X_C)
+    LRC = LogisticRegression(random_state=0, solver='lbfgs')
+    LRC.fit(x_c, y.ravel(), sample_weight=weight)
+
+    # LR fits for P(X_E|Y,X_C)
     idx_0 = np.where(y == 0)[0]
     idx_1 = np.where(y == 1)[0]
-    LR0 = LogisticRegression(random_state=0, solver='liblinear')
-    LR0.fit(x_c[idx_0], x_e[idx_0])
-    LR1 = LogisticRegression(random_state=0, solver='liblinear')
-    LR1.fit(x_c[idx_1], x_e[idx_1])
-    pass
+    LR0 = LogisticRegression(random_state=0, multi_class='ovr', solver='lbfgs')
+    LR1 = LogisticRegression(random_state=0, multi_class='ovr', solver='lbfgs')
+    if weight is None:
+        LR0.fit(x_c[idx_0], x_e[idx_0].ravel())
+        LR1.fit(x_c[idx_1], x_e[idx_1].ravel())
+    else:
+        LR0.fit(x_c[idx_0], x_e[idx_0].ravel(), sample_weight=weight[idx_0])
+        LR1.fit(x_c[idx_1], x_e[idx_1].ravel(), sample_weight=weight[idx_1])
+
+    p_y = LRC.predict_proba(z_c)  # P(Y|Z_C)
+    p_e0 = LR0.predict_proba(z_c)  # P(X_E|Y=0,Z_C)
+    p_e1 = LR1.predict_proba(z_c)  # P(X_E|Y=1,Z_C)
+
+    p_ze1 = np.zeros((z_e.shape[0], 1))
+    p_ze0 = np.zeros((z_e.shape[0], 1))
+    for i in range(z_e.shape[0]):
+        p_ze1[i] = p_e1[i, z_e.astype(int)[i]]  # P(Z_E|Y=1,Z_C)
+        p_ze0[i] = p_e0[i, z_e.astype(int)[i]]  # P(Z_E|Y=0,Z_C)
+
+    # P(Y_u=1|Z_C,Z_E)
+    z_y = p_ze1 * p_y[:, 1].reshape((-1, 1)) / (
+                p_ze1 * p_y[:, 1].reshape((-1, 1)) + p_ze0 * p_y[:, 0].reshape((-1, 1)))
+    return z_y
+
+
+def disc_eff_hard_EM(x_c, y, x_e, z_c, z_y, z_e):
+    """
+    This function implements an EM style algorithm to fit a generative model with categorical, rather than continuous
+     effect features.
+    :param x_c: causal features of labelled data
+    :param y: labels
+    :param x_e: effect features of labelled data
+    :param z_c: causal features of unlabelled data
+    :param z_y: labels to be predicted
+    :param z_e: effect features of unlabelled data
+    :return:
+    """
+    c = np.concatenate((x_c, z_c))
+    e = np.concatenate((x_e, z_e))
+
+    # initialise from labelled sample
+    z_y_soft = disc_eff_semigen(x_c, y, x_e, z_c, z_e)
+    u_old = z_y_soft > 0.5
+
+    converged = False
+    while not converged:
+        y_joint = np.concatenate((y, u_old))
+        z_y_soft = disc_eff_semigen(c, y_joint, e, z_c, z_e)
+        u_new = z_y_soft > 0.5
+        if (u_new == u_old).all():
+            converged = True
+
+        u_old = u_new
+
+    return np.mean(z_y == u_old)
+
+
+def disc_eff_soft_EM(x_c, y, x_e, z_c, z_y, z_e):
+    """
+    This function implements an EM style algorithm to fit a generative model with categorical, rather than continuous
+     effect features.
+    :param x_c: causal features of labelled data
+    :param y: labels
+    :param x_e: effect features of labelled data
+    :param z_c: causal features of unlabelled data
+    :param z_y: labels to be predicted
+    :param z_e: effect features of unlabelled data
+    :return:
+    """
+    c = np.concatenate((x_c, z_c))
+    e = np.concatenate((x_e, z_e))
+
+    # initialise from labelled sample
+    z_y_soft = disc_eff_semigen(x_c, y, x_e, z_c, z_e)
+    u_old = z_y_soft > 0.5
+
+    converged = False
+    while not converged:
+        # compute weights
+        p = np.concatenate((y, z_y_soft))  # probabilities for class 1
+        y_joint = np.concatenate((y, u_old))  # current labelling
+        w = (y_joint * p + (1 - y_joint) * (1 - p)).ravel()  # weights
+
+        # perform weighted model fitting
+        z_y_soft_new = disc_eff_semigen(c, y_joint, e, z_c, z_e, w)
+        u_old = z_y_soft_new > 0.5
+        if max(np.abs(z_y_soft - z_y_soft_new)) < 1e-2:
+            converged = True
+
+        z_y_soft = z_y_soft_new
+
+    return np.mean(z_y == u_old)
+
+
+def disc_cond_prop(x_c, y, x_e, z_c, z_y, z_e):
+    y_unl = -1 * np.ones((z_c.shape[0], 1))
+    idx_0 = np.where(y == 0)[0]
+    idx_1 = np.where(y == 1)[0]
+    c_0 = x_c[idx_0]
+    c_1 = x_c[idx_1]
+    e_0 = x_e[idx_0]
+    e_1 = x_e[idx_1]
+
+    # initialise from labelled data
+    LR0 = LogisticRegression(random_state=0, multi_class='ovr', solver='lbfgs').fit(c_0, e_0.ravel())
+    LR1 = LogisticRegression(random_state=0, multi_class='ovr', solver='lbfgs').fit(c_1, e_1.ravel())
+
+    while sum(y_unl == -1) > 0:
+        # check what is still unlabelled
+        idx_remaining = np.where(y_unl == -1)[0]
+
+        # predict for unlabelled points
+        p_e0 = LR0.predict_proba(z_c[idx_remaining])  # P(X_E|Y=0,Z_C)
+        p_e1 = LR1.predict_proba(z_c[idx_remaining])  # P(X_E|Y=1,Z_C)
+        p_ze1 = np.zeros((z_e[idx_remaining].shape[0], 1))
+        p_ze0 = np.zeros((z_e[idx_remaining].shape[0], 1))
+        for i in range(z_e[idx_remaining].shape[0]):
+            p_ze1[i] = p_e1[i, z_e[idx_remaining].astype(int)[i]]  # P(Z_E|Y=1,Z_C)
+            p_ze0[i] = p_e0[i, z_e[idx_remaining].astype(int)[i]]  # P(Z_E|Y=0,Z_C)
+
+        err_0 = 1 - p_ze0
+        err_1 = 1 - p_ze1
+
+        # assign best fitting point to correct label
+        if min(err_0) < min(err_1):
+            # update R0
+            idx = idx_remaining[np.argmin(err_0)]
+            y_unl[idx] = 0
+            np.append(c_0, z_c[idx])
+            np.append(e_0, z_e[idx])
+            LR0 = LogisticRegression(random_state=0, multi_class='ovr', solver='lbfgs').fit(c_0, e_0.ravel())
+        else:
+            # update R1
+            idx = idx_remaining[np.argmin(err_1)]
+            y_unl[idx] = 1
+            np.append(c_1, z_c[idx])
+            np.append(e_1, z_e[idx])
+            LR1 = LogisticRegression(random_state=0, multi_class='ovr', solver='lbfgs').fit(c_1, e_1.ravel())
+
+    return np.mean(y_unl == z_y)
 
 
 def run_methods(x_c, y, x_e, z_c, z_y, z_e):

@@ -28,8 +28,11 @@ dummy_thal = pd.get_dummies(data[:, 12]).values.astype(float)
 idx_cau = np.setdiff1d(idx_cau, 12)
 data_c = np.concatenate((data[:, idx_cau], dummy_thal[:, 1:]), axis=1)
 
+# dummy code categorical effect feature 2: (cp: chest pain type)
+# dummy_cp = pd.get_dummies(data[:, 2]).values.astype(float)
+# data_e = dummy_cp[:, :-1]
 data_e = data[:, idx_eff]
-
+classes = np.unique(data_e.astype(int))
 
 # Initialise result arrays
 acc_lin_lr = []
@@ -43,32 +46,44 @@ acc_semigen_labelled = []
 acc_soft_EM = []
 acc_hard_EM = []
 acc_cond_prop = []
-
+acc_disc_eff_hard = []
+acc_disc_eff_soft = []
+acc_disc_eff_semigen = []
+acc_disc_eff_cond_prop = []
 
 for i in range(n_iter):
     print 'iteration: ', i, '/', n_iter
-    # draw random sample ensuring 2 observations per class
-    n_0 = 0
-    n_1 = 0
-    while n_0 < 2 or n_1 < 2:
+    # ensure all values of effect feature have been seen for each class at least once
+    e_0 = False
+    e_1 = False
+    while not e_0 or not e_1:
         shuffle(idx)
-        y = data[idx[0:n_labelled], idx_y]
-        y = np.reshape(y, (y.shape[0], 1))
-        n_0 = sum(y == 0)
-        n_1 = sum(y == 1)
+        y = data[idx[0:n_labelled], idx_y].reshape((-1, 1))
+        idx_0 = np.where(y == 0)[0]
+        idx_1 = np.where(y == 1)[0]
+        x_e = data_e[idx[0:n_labelled]]
+        x_e0 = x_e[idx_0].astype(int)
+        x_e1 = x_e[idx_1].astype(int)
+        e_0 = all(elem in x_e0 for elem in classes)
+        e_1 = all(elem in x_e1 for elem in classes)
 
     x_c = data_c[idx[0:n_labelled]]
-    x_e = data_e[idx[0:n_labelled]]
     z_c = data_c[idx[n_labelled:n_labelled + n_unlabelled]]
     z_e = data_e[idx[n_labelled:n_labelled + n_unlabelled]]
-    z_y = data[idx[n_labelled:n_labelled+n_unlabelled], idx_y]
-    z_y = np.reshape(z_y, (z_y.shape[0], 1))
+    z_y = data[idx[n_labelled:n_labelled + n_unlabelled], idx_y].reshape((-1, 1))
+
+
+    # Get results
+    acc_disc_eff_hard.append(ssl.disc_eff_hard_EM(x_c, y, x_e, z_c, z_y, z_e))
+    acc_disc_eff_soft.append(ssl.disc_eff_soft_EM(x_c, y, x_e, z_c, z_y, z_e))
+    acc_disc_eff_semigen_temp = np.mean((ssl.disc_eff_semigen(x_c, y, x_e, z_c, z_e) > 0.5) == z_y)
+    acc_disc_eff_semigen.append(acc_disc_eff_semigen_temp)
+    acc_disc_eff_cond_prop.append(ssl.disc_cond_prop(x_c, y, x_e, z_c, z_y, z_e))
 
     a_lin_lr, a_lin_tsvm, a_rbf_tsvm, a_rbf_label_prop, a_rbf_label_spread, a_knn_label_prop, \
     a_knn_label_spread, a_semigen_labelled, a_soft_EM, a_hard_EM, a_cond_prop \
         = ssl.run_methods(x_c, y, x_e, z_c, z_y, z_e)
 
-    # Store results
     acc_lin_lr.append(a_lin_lr)
     acc_lin_tsvm.append(a_lin_tsvm)
     acc_rbf_tsvm.append(a_rbf_tsvm)
@@ -90,6 +105,11 @@ print 'Accuracy of semi-gen model (labelled only): ', np.mean(acc_semigen_labell
 print 'Accuracy of soft EM: ', np.mean(acc_soft_EM), ' +/- ', np.std(acc_soft_EM)
 print 'Accuracy of hard EM: ', np.mean(acc_hard_EM), ' +/- ', np.std(acc_hard_EM)
 print 'Accuracy of cond prop: ', np.mean(acc_cond_prop), ' +/- ', np.std(acc_cond_prop)
+print 'Accuracy of semi-gen model (labelled only) - DISCRETE: ', np.mean(acc_disc_eff_semigen), ' +/- ', np.std(
+    acc_disc_eff_semigen)
+print 'Accuracy of soft EM - DISCRETE: ', np.mean(acc_disc_eff_soft), ' +/- ', np.std(acc_disc_eff_soft)
+print 'Accuracy of hard EM - DISCRETE: ', np.mean(acc_disc_eff_hard), ' +/- ', np.std(acc_disc_eff_hard)
+print 'Accuracy of cond prop - DISCRETE: ', np.mean(acc_disc_eff_cond_prop), ' +/- ', np.std(acc_disc_eff_cond_prop)
 print 'Accuracy of rbf label spread: ', np.mean(acc_rbf_label_spread), ' +/- ', np.std(acc_rbf_label_spread)
 print 'Accuracy of knn label spread: ', np.mean(acc_knn_label_spread), ' +/- ', np.std(acc_knn_label_spread)
 print 'Accuracy of rbf label prop: ', np.mean(acc_rbf_label_prop), ' +/- ', np.std(acc_rbf_label_prop)

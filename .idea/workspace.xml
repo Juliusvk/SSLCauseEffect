@@ -3,6 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="bcc43218-66b3-4989-8553-f61951d83f67" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SSLCauseEffect.py" beforeDir="false" afterPath="$PROJECT_DIR$/SSLCauseEffect.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diabetes_experiment.py" beforeDir="false" afterPath="$PROJECT_DIR$/diabetes_experiment.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/heart_experiment.py" beforeDir="false" afterPath="$PROJECT_DIR$/heart_experiment.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -12,53 +15,66 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SSLCauseEffect.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="547">
-              <caret line="110" lean-forward="true" selection-start-line="110" selection-end-line="110" />
+            <state relative-caret-position="644">
+              <caret line="363" selection-start-line="363" selection-end-line="363" />
               <folding>
                 <element signature="e#0#119#1" />
                 <element signature="e#121#164#0" expanded="true" />
-                <element signature="e#463#656#0" />
-                <element signature="e#687#1017#0" />
-                <element signature="e#1078#1985#0" />
-                <element signature="e#2100#4111#0" />
-                <element signature="e#4220#4587#0" />
+                <element signature="e#464#657#0" />
+                <element signature="e#688#1018#0" />
+                <element signature="e#4676#6074#0" />
+                <element signature="e#6124#6307#0" />
+                <element signature="e#6370#6885#0" />
+                <element signature="e#6936#7342#0" />
+                <element signature="e#7881#8861#0" />
+                <element signature="e#8910#9837#0" />
+                <element signature="e#7273#7403#1" />
+                <element signature="e#9986#11151#0" />
+                <element signature="e#9986#10410#1" />
+                <element signature="e#8192#12676#0" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Linear1DExperiment.py">
+        <entry file="file://$PROJECT_DIR$/synthetic_data_experiment.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="120">
-              <caret line="6" selection-start-line="6" selection-end-line="6" />
+            <state relative-caret-position="271">
+              <caret line="109" selection-start-line="109" selection-end-line="109" />
               <folding>
                 <element signature="e#0#28#0" expanded="true" />
+                <element signature="e#794#1701#0" />
+                <element signature="e#1816#3890#0" />
+                <element signature="e#3935#4302#0" />
+                <element signature="e#4340#5235#0" />
+                <element signature="e#4335#4399#1" />
+                <element signature="e#1686#1748#0" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/heart_experiment.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="528">
-              <caret line="24" column="20" selection-start-line="24" selection-start-column="20" selection-end-line="24" selection-end-column="20" />
+            <state relative-caret-position="2553">
+              <caret line="111" column="115" selection-start-line="111" selection-start-column="115" selection-end-line="111" selection-end-column="115" />
               <folding>
-                <element signature="e#0#43#0" expanded="true" />
+                <element signature="e#0#19#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/RealDataExperiment.py">
+        <entry file="file://$PROJECT_DIR$/diabetes_experiment.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="616">
-              <caret line="28" column="15" selection-start-line="28" selection-start-column="15" selection-end-line="28" selection-end-column="15" />
+            <state relative-caret-position="396">
+              <caret line="18" column="17" selection-start-line="18" selection-start-column="17" selection-end-line="18" selection-end-column="17" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -88,6 +104,7 @@
       <find>ssl</find>
       <find>get_data_line</find>
       <find>sigmoid</find>
+      <find>predict_class</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -98,18 +115,20 @@
       <list>
         <option value="$PROJECT_DIR$/scikitTSVM.py" />
         <option value="$PROJECT_DIR$/conditional_prop.py" />
-        <option value="$PROJECT_DIR$/heart_experiment.py" />
         <option value="$PROJECT_DIR$/RealDataExperiment.py" />
-        <option value="$PROJECT_DIR$/SSLCauseEffect.py" />
         <option value="$PROJECT_DIR$/Linear1DExperiment.py" />
+        <option value="$PROJECT_DIR$/synthetic_data_experiment.py" />
+        <option value="$PROJECT_DIR$/diabetes_experiment.py" />
+        <option value="$PROJECT_DIR$/SSLCauseEffect.py" />
+        <option value="$PROJECT_DIR$/heart_experiment.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="239" />
+    <option name="x" value="331" />
     <option name="y" value="27" />
-    <option name="width" value="1270" />
-    <option name="height" value="1059" />
+    <option name="width" value="1260" />
+    <option name="height" value="1065" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -117,7 +136,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -129,10 +147,11 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/RealDataExperiment.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/heart_experiment.py" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RunDashboard">
@@ -147,28 +166,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.RealDataExperiment">
-    <configuration name="RealDataExperiment" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
-      <module name="SSLCauseEffect" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="$PROJECT_DIR$/../../VirtualEnvironments/python2/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/RealDataExperiment.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Python.heart_experiment">
     <configuration name="SSLCauseEffect" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="SSLCauseEffect" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -190,8 +188,51 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="diabetes_experiment" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="SSLCauseEffect" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$PROJECT_DIR$/../../VirtualEnvironments/python2/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/diabetes_experiment.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="heart_experiment" type="PythonConfigurationType" factoryName="Python">
+      <module name="SSLCauseEffect" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$PROJECT_DIR$/../../VirtualEnvironments/python2/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/heart_experiment.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <list>
-      <item itemvalue="Python.RealDataExperiment" />
+      <item itemvalue="Python.diabetes_experiment" />
+      <item itemvalue="Python.heart_experiment" />
       <item itemvalue="Python.SSLCauseEffect" />
     </list>
     <recent_temporary>
@@ -274,18 +315,25 @@
       <option name="project" value="LOCAL" />
       <updated>1560186353073</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Cleaning code, preprocessing real data">
+      <created>1560277119375</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1560277119375</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="27" width="2560" height="1413" extended-state="6" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.068217665" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.068217665" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" x="1270" y="69" width="1290" height="1371" id="Run" order="2" sideWeight="0.4994726" weight="0.30400628" />
+      <window_info active="true" anchor="bottom" x="1270" y="69" width="1290" height="1371" id="Run" order="2" sideWeight="0.4994726" visible="true" weight="0.30400628" />
       <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.49920383" weight="0.39905736" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -306,7 +354,19 @@
     <MESSAGE value="Generated and plotted training data, started class probs function" />
     <MESSAGE value="Real data experiments" />
     <MESSAGE value="Simulations for paper" />
-    <option name="LAST_COMMIT_MESSAGE" value="Simulations for paper" />
+    <MESSAGE value="Cleaning code, preprocessing real data" />
+    <option name="LAST_COMMIT_MESSAGE" value="Cleaning code, preprocessing real data" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
     <entry file="file:///usr/lib/python3/dist-packages/numpy/core/__init__.py">
@@ -334,13 +394,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="275">
           <caret line="330" selection-start-line="330" selection-end-line="330" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../VirtualEnvironments/python2/local/lib/python2.7/site-packages/sklearn/linear_model/logistic.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="405">
-          <caret line="431" selection-start-line="431" selection-end-line="431" />
         </state>
       </provider>
     </entry>
@@ -373,29 +426,9 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/conditional_prop.py" />
-    <entry file="file://$PROJECT_DIR$/RealDataExperiment.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="616">
-          <caret line="28" column="15" selection-start-line="28" selection-start-column="15" selection-end-line="28" selection-end-column="15" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/heart_experiment.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="528">
-          <caret line="24" column="20" selection-start-line="24" selection-start-column="20" selection-end-line="24" selection-end-column="20" />
-          <folding>
-            <element signature="e#0#43#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/Linear1DExperiment.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
+        <state relative-caret-position="57">
           <caret line="6" selection-start-line="6" selection-end-line="6" />
           <folding>
             <element signature="e#0#28#0" expanded="true" />
@@ -403,18 +436,92 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/RealDataExperiment.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="456">
+          <caret line="28" column="15" selection-start-line="28" selection-start-column="15" selection-end-line="28" selection-end-column="15" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/lib/python2.7/dist-packages/pandas/core/generic.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="245">
+          <caret line="1347" selection-start-line="1347" selection-end-line="1347" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../VirtualEnvironments/python2/local/lib/python2.7/site-packages/sklearn/utils/validation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="245">
+          <caret line="784" selection-start-line="784" selection-end-line="784" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../VirtualEnvironments/python2/local/lib/python2.7/site-packages/sklearn/linear_model/logistic.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="245">
+          <caret line="1314" selection-start-line="1314" selection-end-line="1314" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/synthetic_data_experiment.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="271">
+          <caret line="109" selection-start-line="109" selection-end-line="109" />
+          <folding>
+            <element signature="e#0#28#0" expanded="true" />
+            <element signature="e#794#1701#0" />
+            <element signature="e#1816#3890#0" />
+            <element signature="e#3935#4302#0" />
+            <element signature="e#4340#5235#0" />
+            <element signature="e#4335#4399#1" />
+            <element signature="e#1686#1748#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/diabetes_experiment.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="396">
+          <caret line="18" column="17" selection-start-line="18" selection-start-column="17" selection-end-line="18" selection-end-column="17" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/SSLCauseEffect.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="547">
-          <caret line="110" lean-forward="true" selection-start-line="110" selection-end-line="110" />
+        <state relative-caret-position="644">
+          <caret line="363" selection-start-line="363" selection-end-line="363" />
           <folding>
             <element signature="e#0#119#1" />
             <element signature="e#121#164#0" expanded="true" />
-            <element signature="e#463#656#0" />
-            <element signature="e#687#1017#0" />
-            <element signature="e#1078#1985#0" />
-            <element signature="e#2100#4111#0" />
-            <element signature="e#4220#4587#0" />
+            <element signature="e#464#657#0" />
+            <element signature="e#688#1018#0" />
+            <element signature="e#4676#6074#0" />
+            <element signature="e#6124#6307#0" />
+            <element signature="e#6370#6885#0" />
+            <element signature="e#6936#7342#0" />
+            <element signature="e#7881#8861#0" />
+            <element signature="e#8910#9837#0" />
+            <element signature="e#7273#7403#1" />
+            <element signature="e#9986#11151#0" />
+            <element signature="e#9986#10410#1" />
+            <element signature="e#8192#12676#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/heart_experiment.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2553">
+          <caret line="111" column="115" selection-start-line="111" selection-start-column="115" selection-end-line="111" selection-end-column="115" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
           </folding>
         </state>
       </provider>
