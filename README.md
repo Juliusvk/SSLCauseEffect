@@ -1,2 +1,2 @@
 # SSLCauseEffect
-This repository contains Python code to reproduce results from the paper "Semi-Supervised Learning, Causality and the Conditional Cluster Assumption" by von Kügelgen, Mey, Loog and Schölkopf (https://arxiv.org/abs/1905.12081).
+This repository contains Python code to reproduce experimental results from the UAI 2020 paper "Semi-Supervised Learning, causality, and the conditional cluster assumption" by J. von Kügelgen, A. Mey, M. Loog, and B. Schölkopf (https://arxiv.org/abs/1905.12081).
